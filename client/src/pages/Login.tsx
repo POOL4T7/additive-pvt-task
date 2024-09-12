@@ -36,7 +36,7 @@ export default function Login() {
     resolver: zodResolver(loginSchema),
   });
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, login } = useAuth();
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -47,20 +47,14 @@ export default function Login() {
   const onSubmit = async (data: LoginFormValues) => {
     try {
       setLoading(true);
-      console.log('data', data);
       const res = await axios.post('/user/login', data);
-      console.log('res.data', res.data);
-      localStorage.setItem('token', res.data.data.token);
-      // toast.success(res.data.message);
+      login(res.data.data.token);
       navigate('/profile');
     } catch (e: any) {
       console.log(e);
       toast.error(e?.response?.data?.message || e.message);
       setLoading(false);
     }
-    // finally {
-    //   setLoading(true);
-    // }
   };
 
   return (

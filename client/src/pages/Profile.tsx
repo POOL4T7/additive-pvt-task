@@ -65,7 +65,7 @@ interface Video {
   thumbnail: string;
   title: string;
   description: string;
-  uploadedAt: string;
+  createdAt: string;
   videoUrl: string;
 }
 
@@ -179,11 +179,10 @@ export default function Profile() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setVideo(reader.result as string);
-        // console.log('render.result', reader.result);
       };
       reader.readAsDataURL(file);
     }
-    const res = await axios.post('/post/create-post', {
+    await axios.post('/post/create-post', {
       title: data.title,
       description: data.description,
       videoUrl: video,
@@ -191,13 +190,14 @@ export default function Profile() {
     setVideos([
       ...videos,
       {
-        title: data.title, description: data.description, videoUrl: video,
+        title: data.title,
+        description: data.description,
+        videoUrl: video,
         _id: '',
         thumbnail: '',
-        uploadedAt: ''
+        createdAt: ` `,
       },
     ]);
-    console.log('res', res);
   };
 
   return (
@@ -296,23 +296,6 @@ export default function Profile() {
                   </div>
                 </div>
               </CardContent>
-              {/* <CardFooter>
-                {profileError && (
-                  <Alert variant='destructive'>
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>{profileError}</AlertDescription>
-                  </Alert>
-                )}
-                {successMessage && (
-                  <Alert
-                    variant='default'
-                    className='bg-green-100 border-green-500'
-                  >
-                    <AlertTitle>Success</AlertTitle>
-                    <AlertDescription>{successMessage}</AlertDescription>
-                  </Alert>
-                )}
-              </CardFooter> */}
             </Card>
           </div>
           <div className='w-full'>
@@ -385,11 +368,16 @@ export default function Profile() {
                 <div className='space-y-6'>
                   {videos.map((video) => (
                     <div key={video._id} className='flex space-x-4'>
-                      <img
-                        src={video.thumbnail}
-                        alt={video.title}
+                      <video
+                        onMouseEnter={(e) => e.currentTarget.play()}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.pause();
+                          e.currentTarget.currentTime = 0; // Reset the video to the start
+                        }}
                         className='w-32 h-24 object-cover rounded'
-                      />
+                      >
+                        <source src={video.videoUrl} type='video/mp4' />
+                      </video>
                       <div className='flex-grow'>
                         <h3 className='text-lg font-semibold'>{video.title}</h3>
                         <p className='text-sm text-gray-600'>
@@ -397,7 +385,7 @@ export default function Profile() {
                         </p>
                         <p className='text-xs text-gray-400 mt-1'>
                           Uploaded on{' '}
-                          {new Date(video.uploadedAt).toLocaleDateString()}
+                          {new Date(video.createdAt).toLocaleDateString()}
                         </p>
                       </div>
                     </div>

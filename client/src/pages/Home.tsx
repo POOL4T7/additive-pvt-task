@@ -109,9 +109,13 @@ export default function HomePage() {
               <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4'>
                 {user?.latestPost?.map((video) => (
                   <div key={video._id} className='space-y-2'>
-                    <img
-                      src={video.thumbnailUrl}
-                      alt={video.title}
+                    <video
+                      src={video.videoUrl}
+                      onMouseEnter={(e) => e.currentTarget.play()}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.pause();
+                        e.currentTarget.currentTime = 0; // Reset the video to the start
+                      }}
                       className='w-full aspect-video object-cover rounded-lg'
                     />
                     <p className='text-sm font-medium truncate'>
