@@ -25,12 +25,19 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Pencil, Plus } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 
-import axios from '@/axios';
+import AxiosInstance from '@/axios';
+import axios from 'axios';
 import { useAuth } from '@/context/AuthProvider';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { MAX_HEIGHT, MAX_SIZE_BYTES, MAX_WIDTH } from '@/lib/utils';
+import {
+  MAX_HEIGHT,
+  MAX_SIZE_BYTES,
+  MAX_WIDTH,
+  uploadImage,
+} from '@/lib/utils';
 
 const bioSchema = z.object({
   bio: z.string().max(500, 'Bio must not exceed 500 characters'),
@@ -81,9 +88,8 @@ interface Video {
 
 export default function Profile() {
   const [profileImage, setProfileImage] = useState<string | null>(null);
-  // const [user, setUser] = useState<User | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
-  // const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+  const [videoProgress, setVideoProgress] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [video, setVideo] = useState('');
@@ -114,7 +120,7 @@ export default function Profile() {
   useEffect(() => {
     async function fetchPost() {
       try {
-        const { data } = await axios.get('/post/my-posts');
+        const { data } = await AxiosInstance.get('/post/my-posts');
         setVideos(data.postList);
       } catch (e) {
         console.log(e);
@@ -123,7 +129,9 @@ export default function Profile() {
     fetchPost();
   }, []);
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (file) {
       if (file.size > MAX_SIZE_BYTES) {
@@ -131,15 +139,19 @@ export default function Profile() {
         return;
       }
 
-      // using image reader
       const img = new Image();
       img.onload = () => {
         if (img.width > MAX_WIDTH || img.height > MAX_HEIGHT) {
           toast.error('Image dimensions should be less than 500x500 pixels.');
         } else {
           const reader = new FileReader();
-          reader.onloadend = () => {
+          reader.onloadend = async () => {
             setProfileImage(reader.result as string);
+            const { url } = await uploadImage(file);
+            const res = await AxiosInstance.patch('/user/update-profile', {
+              profile: url,
+            });
+            console.log('res.data', res.data);
           };
           reader.readAsDataURL(file);
         }
@@ -153,12 +165,8 @@ export default function Profile() {
     // update-profile
     try {
       setLoading(true);
-      console.log('data', data);
-      const res = await axios.patch('/user/update-profile', data);
-      console.log('res.data', res.data);
+      const res = await AxiosInstance.patch('/user/update-profile', data);
       toast.success(res.data.message);
-      // navigate('/profile');
-      // setLoading(false);
       window.location.reload();
     } catch (e: any) {
       console.log(e);
@@ -171,18 +179,13 @@ export default function Profile() {
     const file = fileInputRef.current?.files?.[0];
 
     if (file) {
-      if (file.size > MAX_SIZE_BYTES * 6) {
-        toast.error('File size should be less than 6 MB.');
-        return;
-      }
-
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setVideo(reader.result as string);
+      reader.onloadend = async () => {
+        // setVideo(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
-    await axios.post('/post/create-post', {
+    await AxiosInstance.post('/post/create-post', {
       title: data.title,
       description: data.description,
       videoUrl: video,
@@ -200,6 +203,44 @@ export default function Profile() {
     ]);
   };
 
+  async function uploadVideo(e: React.ChangeEvent<HTMLInputElement>) {
+    try {
+      e.preventDefault();
+      const file = e.target.files?.[0];
+
+      if (!file) return;
+      if (file.size > MAX_SIZE_BYTES * 6) {
+        toast.error('File size should be less than 6 MB.');
+        return;
+      }
+      const data = new FormData();
+      data.append('file', file);
+      data.append('upload_preset', 'additive');
+
+      const res = await axios.post(
+        `https://api.cloudinary.com/v1_1/${
+          import.meta.env.VITE_CLOUD_NAME
+        }/video/upload`,
+        data,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          onUploadProgress(progressEvent) {
+            console.log(
+              'progressEvent',
+              Math.round((progressEvent.progress || 0) * 100)
+            );
+            setVideoProgress(Math.round((progressEvent.progress || 0) * 100));
+          },
+        }
+      );
+      setVideo(res.data.url);
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
   return (
     <div className='container mx-auto py-8 px-4'>
       <div className='max-w-6xl mx-auto'>
@@ -215,7 +256,10 @@ export default function Profile() {
                   <div className='flex items-center justify-center'>
                     <div className='relative'>
                       <Avatar className='w-24 h-24'>
-                        <AvatarImage src={profileImage || ''} alt='Profile' />
+                        <AvatarImage
+                          src={user?.profile || profileImage || ''}
+                          alt='Profile'
+                        />
                         <AvatarFallback>JD</AvatarFallback>
                       </Avatar>
                       <Label
@@ -275,7 +319,7 @@ export default function Profile() {
                               <Textarea
                                 id='bio'
                                 {...registerBio('bio')}
-                                defaultValue='I am a video content creator passionate about technology and education.'
+                                defaultValue={user?.bio}
                                 rows={4}
                               />
                               {bioErrors.bio && (
@@ -349,7 +393,20 @@ export default function Profile() {
                             // {...registerVideo('file')}
                             required
                             ref={fileInputRef}
+                            onChange={uploadVideo}
                           />
+                          {videoProgress != 0 && (
+                            <div className='space-y-2'>
+                              <Label>Video Progress</Label>
+                              <Progress
+                                value={videoProgress}
+                                className='w-full'
+                              />
+                              <p className='text-sm text-gray-500'>
+                                {videoProgress}% complete
+                              </p>
+                            </div>
+                          )}
                           {/* {videoErrors.file && (
                             <p className='text-sm text-red-500'>
                               {videoErrors.file.message}

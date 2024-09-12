@@ -17,6 +17,7 @@ interface User {
   email: string;
   status: 'active' | 'inactive' | 'blocked';
   bio: string;
+  profile: string;
 }
 
 // Define the AuthContext type
