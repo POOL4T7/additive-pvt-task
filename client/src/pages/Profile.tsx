@@ -11,11 +11,9 @@ import {
   Card,
   CardContent,
   CardDescription,
-  // CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-// import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Dialog,
@@ -33,7 +31,6 @@ import { useAuth } from '@/context/AuthProvider';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { MAX_HEIGHT, MAX_SIZE_BYTES, MAX_WIDTH } from '@/lib/utils';
-// import { toast } from 'react-toastify';
 
 const bioSchema = z.object({
   bio: z.string().max(500, 'Bio must not exceed 500 characters'),
@@ -46,22 +43,30 @@ const videoSchema = z.object({
   description: z
     .string()
     .max(500, 'Description must not exceed 500 characters'),
-  file: z
-    .instanceof(File)
-    .refine(
-      (file) => file.size <= 6 * 1024 * 1024,
-      'File size must not exceed 6MB'
-    ),
+  // file: z
+  //   .custom<File>((file) => file instanceof File, {
+  //     message: 'Input is not a valid file',
+  //   })
+  //   .refine((file) => file.size <= 6 * 1024 * 1024, {
+  //     message: 'File size should be less than 6 MB',
+  //   })
+  //   .refine(
+  //     (file) => ['video/mp4', 'video/webm', 'video/ogg'].includes(file.type),
+  //     {
+  //       message: 'Only video files (mp4, webm, ogg) are allowed',
+  //     }
+  //   ),
 });
 
 type VideoFormValues = z.infer<typeof videoSchema>;
 
 interface Video {
-  id: string;
+  _id: string;
   thumbnail: string;
   title: string;
   description: string;
   uploadedAt: string;
+  videoUrl: string;
 }
 
 // interface User {
@@ -78,9 +83,10 @@ export default function Profile() {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   // const [user, setUser] = useState<User | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
-  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+  // const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
+  const [video, setVideo] = useState('');
   const {
     register: registerBio,
     handleSubmit: handleSubmitBio,
@@ -93,7 +99,6 @@ export default function Profile() {
     register: registerVideo,
     handleSubmit: handleSubmitVideo,
     formState: { errors: videoErrors },
-    reset: resetVideo,
   } = useForm<VideoFormValues>({
     resolver: zodResolver(videoSchema),
   });
@@ -107,28 +112,15 @@ export default function Profile() {
   }, [isAuthenticated, navigate]);
 
   useEffect(() => {
-    // setUser(user);
-    // setProfileImage('/placeholder.svg?height=200&width=200');
-    // // Simulating fetching user videos
-    // const userVideos: Video[] = [
-    //   {
-    //     id: '1',
-    //     thumbnail: '/placeholder.svg?height=120&width=200',
-    //     title: 'Introduction to React',
-    //     description:
-    //       'Learn the basics of React in this comprehensive tutorial.',
-    //     uploadedAt: '2023-06-15T10:30:00Z',
-    //   },
-    //   {
-    //     id: '2',
-    //     thumbnail: '/placeholder.svg?height=120&width=200',
-    //     title: 'Advanced CSS Techniques',
-    //     description:
-    //       'Discover advanced CSS techniques to create stunning layouts.',
-    //     uploadedAt: '2023-06-10T14:45:00Z',
-    //   },
-    // ];
-    // setVideos(userVideos);
+    async function fetchPost() {
+      try {
+        const { data } = await axios.get('/post/my-posts');
+        setVideos(data.postList);
+      } catch (e) {
+        console.log(e);
+      }
+    }
+    fetchPost();
   }, []);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -175,35 +167,37 @@ export default function Profile() {
     }
   };
 
-  const handleVideoUpdate = (data: VideoFormValues) => {
-    if (selectedVideo) {
-      const updatedVideos = videos.map((video) =>
-        video.id === selectedVideo.id ? { ...video, ...data } : video
-      );
-      setVideos(updatedVideos);
-      setSelectedVideo(null);
-      resetVideo();
-    }
-  };
-
-  const handleAddVideo = (data: VideoFormValues) => {
-    console.log('New video data:', data);
+  const handleAddVideo = async (data: VideoFormValues) => {
     const file = fileInputRef.current?.files?.[0];
-    console.log('file', file);
 
-    // if (file) {
-    //   if (file.size > MAX_SIZE_BYTES * 6) {
-    //     toast.error('File size should be less than 6 MB.');
-    //     return;
-    //   }
+    if (file) {
+      if (file.size > MAX_SIZE_BYTES * 6) {
+        toast.error('File size should be less than 6 MB.');
+        return;
+      }
 
-    //   const reader = new FileReader();
-    //   reader.onloadend = () => {
-    //     // setVideo(reader.result);
-    //     console.log('render.result', reader.result);
-    //   };
-    //   reader.readAsDataURL(file);
-    // }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setVideo(reader.result as string);
+        // console.log('render.result', reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+    const res = await axios.post('/post/create-post', {
+      title: data.title,
+      description: data.description,
+      videoUrl: video,
+    });
+    setVideos([
+      ...videos,
+      {
+        title: data.title, description: data.description, videoUrl: video,
+        _id: '',
+        thumbnail: '',
+        uploadedAt: ''
+      },
+    ]);
+    console.log('res', res);
   };
 
   return (
@@ -369,14 +363,15 @@ export default function Profile() {
                             id='file'
                             type='file'
                             accept='video/*'
-                            {...registerVideo('file')}
+                            // {...registerVideo('file')}
+                            required
                             ref={fileInputRef}
                           />
-                          {videoErrors.file && (
+                          {/* {videoErrors.file && (
                             <p className='text-sm text-red-500'>
                               {videoErrors.file.message}
                             </p>
-                          )}
+                          )} */}
                         </div>
                       </div>
                       <DialogFooter className='mt-4'>
@@ -389,7 +384,7 @@ export default function Profile() {
               <CardContent>
                 <div className='space-y-6'>
                   {videos.map((video) => (
-                    <div key={video.id} className='flex space-x-4'>
+                    <div key={video._id} className='flex space-x-4'>
                       <img
                         src={video.thumbnail}
                         alt={video.title}
@@ -405,59 +400,6 @@ export default function Profile() {
                           {new Date(video.uploadedAt).toLocaleDateString()}
                         </p>
                       </div>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant='outline'
-                            size='sm'
-                            onClick={() => setSelectedVideo(video)}
-                          >
-                            Edit
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Edit Video</DialogTitle>
-                            <DialogDescription>
-                              Make changes to your video details here.
-                            </DialogDescription>
-                          </DialogHeader>
-                          <form onSubmit={handleSubmitVideo(handleVideoUpdate)}>
-                            <div className='space-y-4'>
-                              <div className='space-y-2'>
-                                <Label htmlFor='title'>Title</Label>
-                                <Input
-                                  id='title'
-                                  defaultValue={selectedVideo?.title}
-                                  {...registerVideo('title')}
-                                />
-                                {videoErrors.title && (
-                                  <p className='text-sm text-red-500'>
-                                    {videoErrors.title.message}
-                                  </p>
-                                )}
-                              </div>
-                              <div className='space-y-2'>
-                                <Label htmlFor='description'>Description</Label>
-                                <Textarea
-                                  id='description'
-                                  defaultValue={selectedVideo?.description}
-                                  {...registerVideo('description')}
-                                  rows={4}
-                                />
-                                {videoErrors.description && (
-                                  <p className='text-sm text-red-500'>
-                                    {videoErrors.description.message}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                            <DialogFooter className='mt-4'>
-                              <Button type='submit'>Save changes</Button>
-                            </DialogFooter>
-                          </form>
-                        </DialogContent>
-                      </Dialog>
                     </div>
                   ))}
                 </div>

@@ -50,7 +50,7 @@ export default function Login() {
       console.log('data', data);
       const res = await axios.post('/user/login', data);
       console.log('res.data', res.data);
-      localStorage.setItem('token', JSON.stringify(res.data.data.token));
+      localStorage.setItem('token', res.data.data.token);
       // toast.success(res.data.message);
       navigate('/profile');
     } catch (e: any) {

@@ -6,6 +6,7 @@ import Signup from '@/pages/Signup';
 import Profile from '@/pages/Profile';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import HomePage from './pages/Home';
 
 function App() {
   console.log(import.meta.env.VITE_API_URL);
@@ -14,6 +15,7 @@ function App() {
       <Navbar />
       <ToastContainer />
       <Routes>
+        <Route path='/' element={<HomePage />} />
         <Route path='/signup' element={<Signup />} />
         <Route path='/login' element={<Login />} />
         <Route path='/profile' element={<Profile />} />

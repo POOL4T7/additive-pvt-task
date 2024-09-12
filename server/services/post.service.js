@@ -1,5 +1,5 @@
 // services/postService.js
-const Post = require('../models/postModel');
+const Post = require('../models/post.model');
 
 // PostServices object containing methods to handle post-related database operations
 const PostServices = {
@@ -27,13 +27,55 @@ const PostServices = {
   //     }
   //   },
 
-  getAllPosts: async function (filter = {}) {
+  getUserPosts: async function (filter = {}) {
     try {
       // Finding all posts that match the filter criteria.
       const data = await Post.find(filter).lean();
       return data;
     } catch (e) {
       throw new Error(`Error fetching posts: ${e.message}`);
+    }
+  },
+  getAllPosts: async function () {
+    try {
+      const latestPosts = await Post.aggregate([
+        {
+          $sort: { createdAt: -1 },
+        },
+        {
+          $group: {
+            _id: '$userId',
+            latestPost: { $push: '$$ROOT' },
+          },
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'userDetails',
+          },
+        },
+        {
+          $unwind: {
+            path: '$userDetails',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            userId: '$_id',
+            latestPost: 1,
+            userDetails: 1,
+          },
+        },
+      ]);
+
+      return latestPosts;
+    } catch (error) {
+      console.error('Error fetching latest posts grouped by user:', error);
+      throw error;
     }
   },
 };

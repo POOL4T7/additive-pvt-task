@@ -19,6 +19,7 @@ app.use(
 );
 
 const UserRoutes = require('./routes/user.route');
+const PostRoutes = require('./routes/post.route');
 
 app.get('/api', (req, res) => {
   var response = {
@@ -29,6 +30,7 @@ app.get('/api', (req, res) => {
 });
 
 app.use('/api/user', UserRoutes);
+app.use('/api/post', PostRoutes);
 
 /**
  * @description Page NOT FOUND Error
