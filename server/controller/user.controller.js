@@ -6,7 +6,7 @@ const UserController = {
   userRegistration: async function (req, res) {
     try {
       const isExists = await UserServices.getUserData({
-        email: req.body.email,
+        firstName: req.body.firstName,
       });
       if (!isExists) {
         const password = AuthService.generateRandomPassword();
@@ -90,12 +90,9 @@ const UserController = {
   updateProfile: async function (req, res) {
     try {
       const formData = {};
-      const { lastName, profile, bio, mobile } = req.body;
-      // if (lastName) formData.lastName = lastName;
+      const { profile, bio } = req.body;
       if (profile) formData.profile = profile;
       if (bio) formData.bio = bio;
-      // if (mobile) formData.mobile = mobile;
-      console.log('req.sessionDetails', req.sessionDetails);
       const data = await UserServices.updateUser(
         { _id: req.sessionDetails._id },
         formData

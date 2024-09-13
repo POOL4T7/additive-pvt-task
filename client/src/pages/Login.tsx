@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -49,7 +48,6 @@ export default function Login() {
       setLoading(true);
       const res = await axios.post('/user/login', data);
       login(res.data.data.token);
-      navigate('/profile');
     } catch (e: any) {
       console.log(e);
       toast.error(e?.response?.data?.message || e.message);

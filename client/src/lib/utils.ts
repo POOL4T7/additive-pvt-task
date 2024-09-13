@@ -28,21 +28,13 @@ export const uploadImage = async (file: File) => {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        onUploadProgress(progressEvent) {
-          console.log(
-            'progressEvent',
-            Math.round((progressEvent.progress || 0) * 100)
-          );
-          // const percentCompleted = Math.round(
-          //   (progressEvent.loaded * 100) / progressEvent.total
-          // );
-        },
+        
       }
     );
 
     return res.data;
   } catch (error: any) {
-    console.log(error);
+
     toast.error(error.message);
   }
 };

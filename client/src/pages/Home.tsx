@@ -37,7 +37,6 @@ export default function HomePage() {
         const { data } = await axios.get('/post/all-posts');
 
         setFeed(data.postList);
-        console.log('data.postList', data.postList);
         setLoading(false);
       } catch (err: any) {
         console.log(err);

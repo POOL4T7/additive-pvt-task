@@ -18,7 +18,7 @@ export default function Navbar() {
         <div className='flex justify-between h-16'>
           <div className='flex'>
             <Link to='/' className='flex-shrink-0 flex items-center'>
-              <span className='text-xl font-bold'>MyApp</span>
+              <span className='text-xl font-bold'>Additive Videos</span>
             </Link>
           </div>
           <div className='flex items-center'>

@@ -47,7 +47,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
-  console.log('auth context called');
+
   // Function to fetch user data from API
   const fetchUserData = async () => {
     const token = localStorage.getItem('token');
@@ -76,7 +76,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   // Function to handle login
   const login = (token: string) => {
     localStorage.setItem('token', token);
-    fetchUserData(); // Refresh user data after login
+    fetchUserData();
+    window.location.href = '/profile';
   };
 
   // Function to handle logout

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -93,6 +92,7 @@ export default function Profile() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [video, setVideo] = useState('');
+  const [open, setOpen] = useState(false);
   const {
     register: registerBio,
     handleSubmit: handleSubmitBio,
@@ -148,10 +148,9 @@ export default function Profile() {
           reader.onloadend = async () => {
             setProfileImage(reader.result as string);
             const { url } = await uploadImage(file);
-            const res = await AxiosInstance.patch('/user/update-profile', {
+            await AxiosInstance.patch('/user/update-profile', {
               profile: url,
             });
-            console.log('res.data', res.data);
           };
           reader.readAsDataURL(file);
         }
@@ -161,7 +160,7 @@ export default function Profile() {
   };
 
   const handleBioUpdate = async (data: BioFormValues) => {
-    console.log('Bio update data:', data);
+
     // update-profile
     try {
       setLoading(true);
@@ -176,13 +175,12 @@ export default function Profile() {
   };
 
   const handleAddVideo = async (data: VideoFormValues) => {
+
     const file = fileInputRef.current?.files?.[0];
 
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = async () => {
-        // setVideo(reader.result as string);
-      };
+      reader.onloadend = async () => {};
       reader.readAsDataURL(file);
     }
     await AxiosInstance.post('/post/create-post', {
@@ -201,8 +199,9 @@ export default function Profile() {
         createdAt: ` `,
       },
     ]);
+    setOpen(false);
   };
-
+  
   async function uploadVideo(e: React.ChangeEvent<HTMLInputElement>) {
     try {
       e.preventDefault();
@@ -346,7 +345,7 @@ export default function Profile() {
             <Card>
               <CardHeader className='flex flex-row items-center justify-between'>
                 <CardTitle>Your Videos</CardTitle>
-                <Dialog>
+                <Dialog open={open} onOpenChange={setOpen}>
                   <DialogTrigger asChild>
                     <Button size='sm'>
                       <Plus className='w-4 h-4 mr-2' />
